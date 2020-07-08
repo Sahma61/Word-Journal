@@ -14,7 +14,8 @@ class _HomeState extends State<Home> {
   Future<List<Journal>> _loadJournals() async {
     await DatabaseFileRoutines().readJournals().then((journalsJson) {
       _database = databaseFromJson(journalsJson);
-      _database.journal.sort((comp1, comp2) => comp2.date.compareTo(comp1.date));
+      _database.journal
+          .sort((comp1, comp2) => comp2.date.compareTo(comp1.date));
     });
     return _database.journal;
   }
@@ -25,13 +26,12 @@ class _HomeState extends State<Home> {
     _journalEdit = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => EditEntry(
-          add: add,
-          index: index,
-          journalEdit: _journalEdit,
-        ),
-        fullscreenDialog: true
-      ),
+          builder: (context) => EditEntry(
+                add: add,
+                index: index,
+                journalEdit: _journalEdit,
+              ),
+          fullscreenDialog: true),
     );
 
     switch (_journalEdit.action) {
@@ -100,11 +100,11 @@ class _HomeState extends State<Home> {
     return ListView.separated(
       itemCount: snapshot.data.length,
       itemBuilder: (BuildContext context, int index) {
-        String _subtitle =  snapshot.data[index].note;
+        String _subtitle = snapshot.data[index].note;
         String _title = snapshot.data[index].name;
         return Dismissible(
-          key: Key(snapshot.data[index].id),
-          background: Container(
+            key: Key(snapshot.data[index].id),
+            background: Container(
               color: Colors.red,
               alignment: Alignment.centerLeft,
               padding: EdgeInsets.only(left: 16.0),
@@ -112,8 +112,8 @@ class _HomeState extends State<Home> {
                 Icons.delete,
                 color: Colors.white,
               ),
-          ),
-          secondaryBackground: Container(
+            ),
+            secondaryBackground: Container(
               color: Colors.red,
               alignment: Alignment.centerRight,
               padding: EdgeInsets.only(right: 16.0),
@@ -121,49 +121,55 @@ class _HomeState extends State<Home> {
                 Icons.delete,
                 color: Colors.white,
               ),
-          ),
-          child: ListTile(
-            leading: Column(
-              children: <Widget>[
-                Text(DateFormat.d().format(DateTime.parse(snapshot.data[index].date)),
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 32.0,
-                      color: Colors.blue),
-                ),
-                Text(DateFormat.MMM().format(DateTime.parse(snapshot.data[index].date)),
-                  style: TextStyle(
+            ),
+            child: ListTile(
+              leading: Column(
+                children: <Widget>[
+                  Text(
+                    DateFormat.d()
+                        .format(DateTime.parse(snapshot.data[index].date)),
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 32.0,
+                        color: Colors.blue),
+                  ),
+                  Text(
+                    DateFormat.MMM()
+                        .format(DateTime.parse(snapshot.data[index].date)),
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15.0,
                       color: Colors.blue,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            title: Text(
-              _title,
-              style: TextStyle(fontWeight: FontWeight.bold,
-              color: Colors.black),
-            ),
-            subtitle: Text(_subtitle,
-            style: TextStyle(
-              color: Colors.black87
-            ),),
-            onTap: () async {
-              _addOrEditJournal(
+                ],
+              ),
+              title: Text(
+                _title,
+                style:
+                    TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+              ),
+              subtitle: Text(
+                _subtitle,
+                style: TextStyle(color: Colors.black87),
+              ),
+              onTap: () async {
+                _addOrEditJournal(
                   add: false,
                   index: index,
                   journal: snapshot.data[index],
-              );
-            },
-          ),
-          onDismissed: (direction) {
-            setState(() {
-              _database.journal.removeAt(index);
+                );
+              },
+            ),
+            confirmDismiss: (direction) async {
+              bool isDismissed = await _confirmDeleteJournal();
+              if (isDismissed) {
+                setState(() {
+                  _database.journal.removeAt(index);
+                });
+                DatabaseFileRoutines().writeJournals(databaseToJson(_database));
+              }
             });
-            DatabaseFileRoutines().writeJournals(databaseToJson(_database));
-          },
-        );
       },
       separatorBuilder: (BuildContext context, int index) {
         return Divider(
@@ -171,5 +177,35 @@ class _HomeState extends State<Home> {
         );
       },
     );
+  }
+
+  Future<bool> _confirmDeleteJournal() async {
+    return await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+              title: Text(
+                "Do you want to remove this entry?",
+                style: TextStyle(
+                  color: Colors.red,
+                ),
+              ),
+              elevation: 48.0,
+              actions: <Widget>[
+                FlatButton(
+                  child: Text('Yes'),
+                  onPressed: () {
+                    Navigator.pop(context, true);
+                  },
+                ),
+                FlatButton(
+                  onPressed: () {
+                    Navigator.pop(context, false);
+                  },
+                  child: Text('No'),
+                ),
+              ]);
+        });
   }
 }
